@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from .models import Customer, Opportunity, Campaign, Activity, SalesMetrics, OpportunityStage, CustomerStatus
-from .database import db
+from .sql_database import sql_db as db
 
 app = FastAPI(title="CRM System API", version="1.0.0")
 
@@ -16,6 +16,15 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
+
+@app.get("/")
+async def root():
+    return {
+        "message": "CRM System API",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "health": "/healthz"
+    }
 
 @app.get("/healthz")
 async def healthz():
