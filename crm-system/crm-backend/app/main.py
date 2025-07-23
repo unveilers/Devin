@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from typing import List, Optional
 from datetime import datetime
 
@@ -17,14 +18,187 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    return {
-        "message": "CRM System API",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "health": "/healthz"
-    }
+    customers = db.get_all_customers()
+    opportunities = db.get_all_opportunities()
+    campaigns = db.get_all_campaigns()
+    activities = db.get_all_activities()
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>CRM System Database</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }}
+            .container {{ max-width: 1200px; margin: 0 auto; }}
+            h1 {{ color: #333; text-align: center; }}
+            h2 {{ color: #666; border-bottom: 2px solid #ddd; padding-bottom: 10px; }}
+            table {{ width: 100%; border-collapse: collapse; margin: 20px 0; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+            th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }}
+            th {{ background-color: #f8f9fa; font-weight: bold; }}
+            tr:hover {{ background-color: #f5f5f5; }}
+            .stats {{ display: flex; justify-content: space-around; margin: 20px 0; }}
+            .stat-card {{ background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }}
+            .stat-number {{ font-size: 2em; font-weight: bold; color: #007bff; }}
+            .nav {{ background: #007bff; padding: 15px; border-radius: 8px; margin-bottom: 20px; }}
+            .nav a {{ color: white; text-decoration: none; margin: 0 15px; font-weight: bold; }}
+            .nav a:hover {{ text-decoration: underline; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🏢 CRM System Database</h1>
+            
+            <div class="nav">
+                <a href="/">Database View</a>
+                <a href="/docs">API Documentation</a>
+                <a href="/healthz">Health Check</a>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">{len(customers)}</div>
+                    <div>Total Customers</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{len(opportunities)}</div>
+                    <div>Total Opportunities</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{len(campaigns)}</div>
+                    <div>Total Campaigns</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{len(activities)}</div>
+                    <div>Total Activities</div>
+                </div>
+            </div>
+            
+            <h2>👥 Customers</h2>
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Company</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                </tr>"""
+    
+    for customer in customers:
+        html_content += f"""
+                <tr>
+                    <td>{customer.id}</td>
+                    <td>{customer.first_name} {customer.last_name}</td>
+                    <td>{customer.email}</td>
+                    <td>{customer.phone or 'N/A'}</td>
+                    <td>{customer.company or 'N/A'}</td>
+                    <td>{customer.status}</td>
+                    <td>{customer.created_at.strftime('%Y-%m-%d %H:%M') if customer.created_at else 'N/A'}</td>
+                </tr>"""
+    
+    html_content += """
+            </table>
+            
+            <h2>💼 Opportunities</h2>
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Customer ID</th>
+                    <th>Value</th>
+                    <th>Stage</th>
+                    <th>Probability</th>
+                    <th>Expected Close</th>
+                    <th>Created</th>
+                </tr>"""
+    
+    for opportunity in opportunities:
+        html_content += f"""
+                <tr>
+                    <td>{opportunity.id}</td>
+                    <td>{opportunity.title}</td>
+                    <td>{opportunity.customer_id}</td>
+                    <td>${opportunity.value:,.2f}</td>
+                    <td>{opportunity.stage}</td>
+                    <td>{opportunity.probability}%</td>
+                    <td>{opportunity.expected_close_date.strftime('%Y-%m-%d') if opportunity.expected_close_date else 'N/A'}</td>
+                    <td>{opportunity.created_at.strftime('%Y-%m-%d %H:%M') if opportunity.created_at else 'N/A'}</td>
+                </tr>"""
+    
+    html_content += """
+            </table>
+            
+            <h2>📢 Campaigns</h2>
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Budget</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Created</th>
+                </tr>"""
+    
+    for campaign in campaigns:
+        budget_display = f"${campaign.budget:,.2f}" if campaign.budget is not None else "$0.00"
+        html_content += f"""
+                <tr>
+                    <td>{campaign.id}</td>
+                    <td>{campaign.name}</td>
+                    <td>{campaign.status}</td>
+                    <td>{budget_display}</td>
+                    <td>{campaign.start_date.strftime('%Y-%m-%d') if campaign.start_date else 'N/A'}</td>
+                    <td>{campaign.end_date.strftime('%Y-%m-%d') if campaign.end_date else 'N/A'}</td>
+                    <td>{campaign.created_at.strftime('%Y-%m-%d %H:%M') if campaign.created_at else 'N/A'}</td>
+                </tr>"""
+    
+    html_content += """
+            </table>
+            
+            <h2>📝 Activities</h2>
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Subject</th>
+                    <th>Customer ID</th>
+                    <th>Opportunity ID</th>
+                    <th>Description</th>
+                    <th>Created</th>
+                </tr>"""
+    
+    for activity in activities:
+        html_content += f"""
+                <tr>
+                    <td>{activity.id}</td>
+                    <td>{activity.type}</td>
+                    <td>{activity.subject}</td>
+                    <td>{activity.customer_id}</td>
+                    <td>{activity.opportunity_id or 'N/A'}</td>
+                    <td>{activity.description or 'N/A'}</td>
+                    <td>{activity.created_at.strftime('%Y-%m-%d %H:%M') if activity.created_at else 'N/A'}</td>
+                </tr>"""
+    
+    html_content += """
+            </table>
+            
+            <div style="margin-top: 40px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3>🔗 API Endpoints</h3>
+                <p><strong>API Documentation:</strong> <a href="/docs">/docs</a></p>
+                <p><strong>Health Check:</strong> <a href="/healthz">/healthz</a></p>
+                <p><strong>Frontend Application:</strong> <a href="https://crm-management-app-b3zmfkb9.devinapps.com/" target="_blank">CRM Frontend</a></p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return html_content
 
 @app.get("/healthz")
 async def healthz():
