@@ -1,0 +1,269 @@
+import { useState, useEffect } from 'react'
+import { Plus, Edit, Trash2, Phone, Mail, Building } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { apiService } from '../services/api'
+import { Customer } from '../types'
+
+export default function CustomerManagement() {
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
+  const [formData, setFormData] = useState<Partial<Customer>>({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    company: '',
+    status: 'prospect'
+  })
+
+  useEffect(() => {
+    loadCustomers()
+  }, [])
+
+  const loadCustomers = async () => {
+    try {
+      const data = await apiService.getCustomers()
+      setCustomers(data)
+    } catch (error) {
+      console.error('Failed to load customers:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      if (editingCustomer) {
+        await apiService.updateCustomer(editingCustomer.id!, formData)
+      } else {
+        await apiService.createCustomer(formData)
+      }
+      await loadCustomers()
+      setIsDialogOpen(false)
+      setEditingCustomer(null)
+      setFormData({
+        first_name: '',
+        last_name: '',
+        email: '',
+        phone: '',
+        company: '',
+        status: 'prospect'
+      })
+    } catch (error) {
+      console.error('Failed to save customer:', error)
+    }
+  }
+
+  const handleEdit = (customer: Customer) => {
+    setEditingCustomer(customer)
+    setFormData(customer)
+    setIsDialogOpen(true)
+  }
+
+  const handleDelete = async (id: number) => {
+    if (confirm('Are you sure you want to delete this customer?')) {
+      try {
+        await apiService.deleteCustomer(id)
+        await loadCustomers()
+      } catch (error) {
+        console.error('Failed to delete customer:', error)
+      }
+    }
+  }
+
+  const filteredCustomers = customers.filter(customer =>
+    `${customer.first_name} ${customer.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.company?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800'
+      case 'inactive': return 'bg-gray-100 text-gray-800'
+      case 'prospect': return 'bg-blue-100 text-blue-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">Loading customers...</div>
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div className="flex-1 max-w-md">
+          <Input
+            placeholder="Search customers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => {
+              setEditingCustomer(null)
+              setFormData({
+                first_name: '',
+                last_name: '',
+                email: '',
+                phone: '',
+                company: '',
+                status: 'prospect'
+              })
+            }}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Customer
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingCustomer ? 'Edit Customer' : 'Add New Customer'}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="first_name">First Name</Label>
+                  <Input
+                    id="first_name"
+                    value={formData.first_name}
+                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="last_name">Last Name</Label>
+                  <Input
+                    id="last_name"
+                    value={formData.last_name}
+                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="company">Company</Label>
+                <Input
+                  id="company"
+                  value={formData.company}
+                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as any })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="prospect">Prospect</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {editingCustomer ? 'Update' : 'Create'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {filteredCustomers.map((customer) => (
+          <Card key={customer.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-lg">
+                    {customer.first_name} {customer.last_name}
+                  </CardTitle>
+                  <Badge className={`mt-1 ${getStatusColor(customer.status)}`}>
+                    {customer.status}
+                  </Badge>
+                </div>
+                <div className="flex space-x-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(customer)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(customer.id!)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-center text-sm text-gray-600">
+                <Mail className="w-4 h-4 mr-2" />
+                {customer.email}
+              </div>
+              {customer.phone && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <Phone className="w-4 h-4 mr-2" />
+                  {customer.phone}
+                </div>
+              )}
+              {customer.company && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <Building className="w-4 h-4 mr-2" />
+                  {customer.company}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {filteredCustomers.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No customers found</p>
+        </div>
+      )}
+    </div>
+  )
+}
