@@ -33,7 +33,7 @@ export default function MarketingModule() {
   const loadCampaigns = async () => {
     try {
       const data = await apiService.getCampaigns()
-      setCampaigns(data)
+      setCampaigns(data as Campaign[])
     } catch (error) {
       console.error('Failed to load campaigns:', error)
     } finally {

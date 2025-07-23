@@ -20,8 +20,8 @@ export default function AnalyticsModule() {
         apiService.getSalesMetrics(),
         apiService.getPipelineByStage()
       ])
-      setSalesMetrics(metricsData)
-      setPipelineData(pipelineStageData)
+      setSalesMetrics(metricsData as SalesMetrics)
+      setPipelineData(pipelineStageData as any)
     } catch (error) {
       console.error('Failed to load analytics:', error)
     } finally {
@@ -172,7 +172,7 @@ export default function AnalyticsModule() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {pieChartData.map((entry, index) => (
+                  {pieChartData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

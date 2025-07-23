@@ -32,7 +32,7 @@ export default function CustomerManagement() {
   const loadCustomers = async () => {
     try {
       const data = await apiService.getCustomers()
-      setCustomers(data)
+      setCustomers(data as Customer[])
     } catch (error) {
       console.error('Failed to load customers:', error)
     } finally {

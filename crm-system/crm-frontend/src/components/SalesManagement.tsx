@@ -3,7 +3,6 @@ import { Plus, Edit, Trash2, DollarSign, Calendar, TrendingUp } from 'lucide-rea
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -37,8 +36,8 @@ export default function SalesManagement() {
         apiService.getOpportunities(),
         apiService.getCustomers()
       ])
-      setOpportunities(opportunitiesData)
-      setCustomers(customersData)
+      setOpportunities(opportunitiesData as Opportunity[])
+      setCustomers(customersData as Customer[])
     } catch (error) {
       console.error('Failed to load data:', error)
     } finally {
@@ -106,17 +105,6 @@ export default function SalesManagement() {
     }
   }
 
-  const getStageColor = (stage: string) => {
-    switch (stage) {
-      case 'lead': return 'bg-gray-100 text-gray-800'
-      case 'qualified': return 'bg-blue-100 text-blue-800'
-      case 'proposal': return 'bg-yellow-100 text-yellow-800'
-      case 'negotiation': return 'bg-orange-100 text-orange-800'
-      case 'closed_won': return 'bg-green-100 text-green-800'
-      case 'closed_lost': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
 
   const getCustomerName = (customerId: number) => {
     const customer = customers.find(c => c.id === customerId)
